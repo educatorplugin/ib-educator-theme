@@ -237,23 +237,44 @@ add_action( 'admin_init', 'educator_redirect_admin' );
 
 if ( ! function_exists( 'educator_get_user_profile_photo' ) ) :
 /**
- * Get user profile photo.
- *
+ * Get user profile photo of the profile or gravatar site.
+ * The parameter $force_img force a default image.
+ * 
  * @param int $user_id
  * @param string $size
+ * @param bool $force_img
  * @return false|array
  */
-function educator_get_user_profile_photo( $user_id, $size = 'thumbnail' ) {
-	$attachment_id = get_user_meta( $user_id, '_educator_photo', true );
-
-	if ( ! $attachment_id ) {
+function educator_get_user_profile_photo( $user_id, $size = 'thumbnail', $force_img = false ) {
+	$attachment = $force_img ? 
+		get_user_meta( $user_id ) : 
+		get_user_meta( $user_id, '_educator_photo', true );
+	
+	if ( empty($attachment) && !$force_img ) {
 		return false;
 	}
-
-	if ( class_exists( 'IB_Retina' ) ) {
-		return IB_Retina::get_2x_image_html( $attachment_id, $size );
+	
+	if ( class_exists( 'IB_Retina' ) && !is_array($attachment) ) {
+		return IB_Retina::get_2x_image_html( $attachment, $size );
 	}
-
-	return wp_get_attachment_image( $attachment_id, $size );
+	
+	$_size = 300; //Medium post thumnail
+	if (is_numeric($size)) {
+		$_size = $size;
+	} elseif (is_array($size)) {
+		$_size = $size[0];
+	} else {
+		switch ($size) {
+			case 'thumbnail':
+				$_size = 150;
+				break;
+			case 'large':
+				$_size = 640;
+		}
+	}
+	
+	return $force_img ? 
+		get_avatar($user_id, $_size) : 
+		wp_get_attachment_image( $attachment, $size );
 }
 endif;
